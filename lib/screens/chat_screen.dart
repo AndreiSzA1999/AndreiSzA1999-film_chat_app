@@ -26,7 +26,7 @@ class _ChatPageState extends State<ChatPage> {
     @required this.imagen,
   });
 
-  bool online = false;
+  bool online = true;
   int contador = 0;
   bool presionado = false;
   Timer timer;
@@ -61,8 +61,37 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
   }
 
+  int numeroMensaje = 0;
+
+  addOtherMessage(String message, int timer, String hora) {
+    final tiempo = Duration(seconds: timer);
+
+    Future.delayed(tiempo, () {
+      setState(() {
+        mensajes.add(
+            OtherMessage(image: widget.imagen, message: message, hour: hora));
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      });
+    });
+  }
+
+  addOtherPicture(int timer, String hora, String imagen) {
+    final tiempo = Duration(seconds: timer);
+
+    Future.delayed(tiempo, () {
+      setState(() {
+        mensajes.add(ImageMessage(
+            image: widget.imagen, hour: hora, imageMessage: imagen));
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      });
+    });
+  }
+
+  ScrollController _scrollController = new ScrollController();
   @override
   Widget build(BuildContext context) {
+    final fieldText = TextEditingController();
+
     return SafeArea(
       child: Scaffold(
           body: Column(
@@ -161,6 +190,7 @@ class _ChatPageState extends State<ChatPage> {
               child: Container(
             color: Color(0xffF3F3F3),
             child: ListView.builder(
+              controller: _scrollController,
               itemCount: mensajes.length,
               itemBuilder: (context, index) {
                 return mensajes[index];
@@ -187,6 +217,42 @@ class _ChatPageState extends State<ChatPage> {
                     : Container(
                         width: 250,
                         child: TextField(
+                          controller: fieldText,
+                          onTap: () {
+                            Timer(
+                                Duration(milliseconds: 100),
+                                () => _scrollController.jumpTo(_scrollController
+                                    .position.maxScrollExtent));
+                          },
+                          onSubmitted: (value) {
+                            fieldText.clear();
+
+                            setState(() {
+                              mensajes.add(OwnMessage(
+                                  readed: true, message: value, hour: "23:40"));
+                            });
+
+                            if (numeroMensaje == 0) {
+                              addOtherMessage(
+                                  "Este es el primer menasje", 2, "23:45");
+                            } else if (numeroMensaje == 1) {
+                              addOtherMessage(
+                                  "Este mensaje aparecerá tras el segundo del usuario",
+                                  1,
+                                  "23:46");
+                            } else if (numeroMensaje == 2) {
+                              addOtherMessage(
+                                  "Añado dos mensajes, este el primero",
+                                  1,
+                                  "23:46");
+                              addOtherPicture(1, "23:43", "assets/chat1.jpg");
+                            }
+                            numeroMensaje++;
+
+                            _scrollController.jumpTo(
+                                _scrollController.position.maxScrollExtent);
+                          },
+                          textInputAction: TextInputAction.done,
                           decoration:
                               InputDecoration(hintText: 'Escribe un mensaje'),
                         ),
@@ -209,27 +275,6 @@ class _ChatPageState extends State<ChatPage> {
                           time: "00:0" + contador.toString(),
                           hour: "23:34"));
                     });
-
-                    Future.delayed(const Duration(seconds: 3), () {
-                      setState(() {
-                        online = true;
-                      });
-                    });
-                    Future.delayed(const Duration(seconds: 5), () {
-                      setState(() {
-                        audioEscuchado = true;
-                        mensajes.removeLast();
-                        mensajes.add(AudioMessage(
-                            readed: audioEscuchado,
-                            time: "00:0" + contador.toString(),
-                            hour: "23:34"));
-                      });
-                    });
-                    Future.delayed(const Duration(seconds: 8), () {
-                      setState(() {
-                        online = false;
-                      });
-                    });
                   },
                   child: Icon(
                     Icons.keyboard_voice_outlined,
@@ -242,6 +287,111 @@ class _ChatPageState extends State<ChatPage> {
           )
         ],
       )),
+    );
+  }
+}
+
+class ImageMessage extends StatefulWidget {
+  const ImageMessage(
+      {@required this.image, @required this.hour, @required this.imageMessage});
+
+  final String image;
+  final String imageMessage;
+
+  final String hour;
+
+  @override
+  _ImageMessageState createState() => _ImageMessageState();
+}
+
+class _ImageMessageState extends State<ImageMessage> {
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 10,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 20.0),
+            child: CircleAvatar(
+              backgroundImage: AssetImage(widget.image),
+            ),
+          ),
+          SizedBox(
+            width: 15,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Container(
+              width: width * 0.7,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade400),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: Offset(1, 3), // changes position of shadow
+                  ),
+                ],
+                borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(20)),
+              ),
+              child: Padding(
+                padding:
+                    EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 5),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 250,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(20)),
+                              image: DecorationImage(
+                                image: AssetImage(widget.imageMessage),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(widget.hour,
+                            style: GoogleFonts.montserrat(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 13)),
+                        SizedBox(
+                          width: 2,
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -262,82 +412,86 @@ class _OtherMessageState extends State<OtherMessage> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 10,
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 20.0),
-          child: CircleAvatar(
-            backgroundImage: AssetImage(widget.image),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 10,
           ),
-        ),
-        SizedBox(
-          width: 15,
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Container(
-            width: width * 0.7,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade400),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: Offset(1, 3), // changes position of shadow
-                ),
-              ],
-              borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                  bottomLeft: Radius.circular(20)),
+          Padding(
+            padding: const EdgeInsets.only(top: 20.0),
+            child: CircleAvatar(
+              backgroundImage: AssetImage(widget.image),
             ),
-            child: Padding(
-              padding: EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 5),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(widget.message,
+          ),
+          SizedBox(
+            width: 15,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Container(
+              width: width * 0.7,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade400),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: Offset(1, 3), // changes position of shadow
+                  ),
+                ],
+                borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(20)),
+              ),
+              child: Padding(
+                padding:
+                    EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 5),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(widget.message,
+                              style: GoogleFonts.montserrat(
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 15)),
+                        ),
+                        SizedBox(
+                          width: 5,
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(widget.hour,
                             style: GoogleFonts.montserrat(
                                 color: Colors.grey.shade700,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 15)),
-                      ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(widget.hour,
-                          style: GoogleFonts.montserrat(
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 13)),
-                      SizedBox(
-                        width: 2,
-                      ),
-                    ],
-                  )
-                ],
+                                fontSize: 13)),
+                        SizedBox(
+                          width: 2,
+                        ),
+                      ],
+                    )
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -361,89 +515,93 @@ class _OwnMessageState extends State<OwnMessage> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: SizedBox(
-            width: 15,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(
-            top: 20,
-            right: 20,
-          ),
-          child: Container(
-            width: width * 0.7,
-            decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.4),
-              border: Border.all(color: Colors.blueAccent.shade400),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: Offset(1, 3), // changes position of shadow
-                ),
-              ],
-              borderRadius: BorderRadius.only(
-                  bottomRight: Radius.circular(20),
-                  topLeft: Radius.circular(20),
-                  bottomLeft: Radius.circular(20)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: SizedBox(
+              width: 15,
             ),
-            child: Padding(
-              padding: EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 5),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(widget.message,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 20,
+              right: 20,
+            ),
+            child: Container(
+              width: width * 0.7,
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.4),
+                border: Border.all(color: Colors.blueAccent.shade400),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: Offset(1, 3), // changes position of shadow
+                  ),
+                ],
+                borderRadius: BorderRadius.only(
+                    bottomRight: Radius.circular(20),
+                    topLeft: Radius.circular(20),
+                    bottomLeft: Radius.circular(20)),
+              ),
+              child: Padding(
+                padding:
+                    EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 5),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(widget.message,
+                              style: GoogleFonts.montserrat(
+                                  color: Colors.grey.shade800,
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 15)),
+                        ),
+                        SizedBox(
+                          width: 5,
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(widget.hour,
                             style: GoogleFonts.montserrat(
                                 color: Colors.grey.shade800,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 15)),
-                      ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(widget.hour,
-                          style: GoogleFonts.montserrat(
-                              color: Colors.grey.shade800,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 13)),
-                      SizedBox(
-                        width: 2,
-                      ),
-                      widget.readed
-                          ? Icon(
-                              Icons.done_all,
-                              size: 18,
-                              color: Colors.blueAccent.shade700,
-                            )
-                          : Icon(
-                              Icons.done_all,
-                              size: 18,
-                              color: Colors.grey,
-                            )
-                    ],
-                  )
-                ],
+                                fontSize: 13)),
+                        SizedBox(
+                          width: 2,
+                        ),
+                        widget.readed
+                            ? Icon(
+                                Icons.done_all,
+                                size: 18,
+                                color: Colors.blueAccent.shade700,
+                              )
+                            : Icon(
+                                Icons.done_all,
+                                size: 18,
+                                color: Colors.grey,
+                              )
+                      ],
+                    )
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
